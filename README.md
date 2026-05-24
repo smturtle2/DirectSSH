@@ -5,37 +5,30 @@
 <h1 align="center">DirectSSH</h1>
 
 <p align="center">
-  A standalone mobile-first SSH terminal client built with Tauri, Rust, TypeScript, and xterm.js.
+  A standalone mobile-first SSH terminal client built with Slint and Rust.
 </p>
 
 <p align="center">
   <a href="https://github.com/smturtle2/DirectSSH/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/smturtle2/DirectSSH?style=for-the-badge"></a>
   <a href="https://github.com/smturtle2/DirectSSH/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/smturtle2/DirectSSH?style=for-the-badge"></a>
-  <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2.x-24C8DB?style=for-the-badge&logo=tauri&logoColor=white">
+  <img alt="Slint" src="https://img.shields.io/badge/Slint-1.16-2379F4?style=for-the-badge">
   <img alt="Android" src="https://img.shields.io/badge/Android-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white">
 </p>
 
 ## Highlights
 
-- Direct SSH sockets through a native Rust backend. No cloud relay or browser-only pseudo terminal.
-- Password and private-key authentication support through `russh`.
-- xterm.js terminal with PTY resize, scrollback, shortcut keys, font-size controls, and mobile keyboard handling.
-- Encrypted local profile vault using AES-GCM in the app data directory.
-- Light mobile-first layout with compact saved sessions, a dedicated terminal view, and touch-friendly controls.
-- Browser preview mode with simulated SSH events for UI development.
+- Native Slint UI with separate HOME session manager and SSH terminal screens.
+- Direct SSH sockets through Rust `russh`; no cloud relay or browser pseudo terminal.
+- Password and private-key authentication with reusable saved profiles.
+- Local AES-GCM encrypted profile vault in the app data directory.
+- VT100 terminal parser with PTY resize, shortcut keys, and terminal font-size controls.
+- Light mobile-first layout with compact sessions, portrait top tabs, and wide rotated rail tabs.
 
 ## Screenshots
 
 | Session manager | SSH terminal |
 | --- | --- |
 | <img src="docs/assets/directssh-home-light.png" alt="DirectSSH light session manager" width="320"> | <img src="docs/assets/directssh-terminal-light.png" alt="DirectSSH light terminal" width="640"> |
-
-The app is designed around a compact session manager and a light terminal workspace:
-
-- Save reusable host profiles with password or key authentication.
-- Connect from a saved profile or launch an ephemeral connection from the current form.
-- Send terminal input directly to the active SSH PTY.
-- Disconnect active sessions from the terminal toolbar.
 
 ## Install
 
@@ -45,74 +38,61 @@ Download the latest APK from the GitHub Releases page:
 https://github.com/smturtle2/DirectSSH/releases/latest
 ```
 
-Use the signed `DirectSSH-v0.1.4.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
+If Android blocks the download source, enable installation from that browser or file manager in system settings.
 
 ## Development
 
 Prerequisites:
 
-- Node.js and npm
-- Rust toolchain
+- Rust 1.88 or newer
 - Android SDK, Android NDK, and JDK 17 for Android builds
+- `cargo-apk` or `xbuild` for Android packaging
 
-Install dependencies:
+Run the desktop development build:
 
 ```bash
-npm install
+cargo run
 ```
 
-Run the browser preview:
+Check and format the Rust code:
 
 ```bash
-npm run dev -- --port 1420
+cargo fmt --check
+cargo check
+cargo clippy --all-targets -- -D warnings
 ```
 
-Run type checking and build the frontend:
+Build a release Android APK with `cargo-apk`. The APK must be signed; keep the keystore outside the repository and pass it through environment variables:
 
 ```bash
-npm run build
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_NDK_ROOT="$HOME/Android/Sdk/ndk/28.2.13676358"
+export CARGO_APK_RELEASE_KEYSTORE="$HOME/.android/directssh-release.keystore"
+export CARGO_APK_RELEASE_KEYSTORE_PASSWORD="$(cat "$HOME/.android/directssh-release.keystore.pass")"
+
+cargo apk build --target aarch64-linux-android --lib --release
 ```
 
-Check the Rust backend:
+Install on a connected Android device:
 
 ```bash
-cargo check --manifest-path src-tauri/Cargo.toml
-```
-
-Build an Android APK:
-
-```bash
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk \
-ANDROID_HOME="$HOME/Android/Sdk" \
-ANDROID_SDK_ROOT="$HOME/Android/Sdk" \
-PATH="$HOME/Android/Sdk/platform-tools:$HOME/Android/Sdk/cmdline-tools/latest/bin:$PATH" \
-npm run tauri android build -- --apk
-```
-
-Build an installable debug APK:
-
-```bash
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk \
-ANDROID_HOME="$HOME/Android/Sdk" \
-ANDROID_SDK_ROOT="$HOME/Android/Sdk" \
-PATH="$HOME/Android/Sdk/platform-tools:$HOME/Android/Sdk/cmdline-tools/latest/bin:$PATH" \
-npm run tauri android build -- --debug --apk
+cargo apk run --target aarch64-linux-android --lib
 ```
 
 ## Security Notes
 
 DirectSSH stores saved profiles in an AES-GCM encrypted vault under the app data directory and protects the local vault key with `0600` permissions on Unix-like platforms.
 
-This is an early MVP. SSH server host-key pinning/known-hosts verification is not implemented yet; the current backend accepts the server key during connection. Use trusted hosts and networks until host-key verification is added.
+This is an early native rewrite. SSH server host-key pinning/known-hosts verification is not implemented yet; the current backend accepts the server key during connection. Use trusted hosts and networks until host-key verification is added.
 
 ## Tech Stack
 
-- Tauri 2
+- Slint
 - Rust
 - russh
-- TypeScript
-- Vite
-- xterm.js
+- vt100
+- AES-GCM
 
 ## License
 

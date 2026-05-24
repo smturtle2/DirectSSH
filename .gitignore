@@ -1,16 +1,8 @@
-node_modules/
-dist/
-.playwright-cli/
+target/
 
-src-tauri/target/
-src-tauri/gen/android/.gradle/
-src-tauri/gen/android/build/
-src-tauri/gen/android/buildSrc/.gradle/
-src-tauri/gen/android/buildSrc/.kotlin/
-src-tauri/gen/android/buildSrc/build/
-src-tauri/gen/android/app/build/
-src-tauri/gen/android/app/src/main/assets/
-src-tauri/gen/android/app/src/main/jniLibs/
-src-tauri/gen/android/local.properties
+android/target/
 
 *.log
+*.jks
+*.keystore
+*.keystore.pass

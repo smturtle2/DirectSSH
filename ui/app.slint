@@ -1,0 +1,686 @@
+import { Button, LineEdit, ScrollView } from "std-widgets.slint";
+
+export struct ProfileRow {
+    id: string,
+    name: string,
+    host: string,
+    port: int,
+    username: string,
+    auth_kind: string,
+    auth_label: string,
+    updated_at: int,
+}
+
+component IconButton inherits Rectangle {
+    in property <string> label;
+    callback clicked();
+
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: #d8e0ea;
+    background: #ffffff;
+
+    Text {
+        text: root.label;
+        color: #0f6fff;
+        font-size: 18px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component TabButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+
+    height: 42px;
+    min-width: 82px;
+    border-radius: 8px;
+    background: active ? #e8f1ff : #ffffff;
+    border-width: 1px;
+    border-color: active ? #9cc4ff : #d8e0ea;
+
+    Text {
+        text: root.label;
+        color: active ? #0f6fff : #475467;
+        font-size: 13px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component RailTabButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+
+    width: 46px;
+    height: 88px;
+    border-radius: 8px;
+    background: active ? #e8f1ff : #ffffff;
+    border-width: 1px;
+    border-color: active ? #9cc4ff : #d8e0ea;
+
+    Text {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 76px;
+        height: 24px;
+        text: root.label;
+        color: active ? #0f6fff : #475467;
+        font-size: 12px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+        transform-origin: { x: self.width / 2, y: self.height / 2 };
+        transform-rotation: -90deg;
+    }
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component SessionRow inherits Rectangle {
+    in property <ProfileRow> profile;
+    callback connect(string);
+    callback edit(string);
+
+    height: 62px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: #d8e0ea;
+    background: #ffffff;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 10px;
+        alignment: center;
+
+        Rectangle {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: #e8f1ff;
+
+            Text {
+                text: root.profile.auth_kind == "key" ? "K" : "P";
+                color: #0b55cc;
+                font-size: 12px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        VerticalLayout {
+            spacing: 2px;
+
+            Text {
+                text: root.profile.name;
+                color: #101828;
+                font-size: 14px;
+                font-weight: 800;
+                overflow: elide;
+            }
+
+            Text {
+                text: root.profile.username + "@" + root.profile.host;
+                color: #667085;
+                font-size: 11px;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            width: 46px;
+            height: 23px;
+            border-radius: 6px;
+            background: root.profile.auth_kind == "key" ? #e9f8ef : #f2f4f7;
+            border-width: 1px;
+            border-color: root.profile.auth_kind == "key" ? #bde8ca : #d0d5dd;
+
+            Text {
+                text: root.profile.auth_kind == "key" ? "KEY" : "PW";
+                color: root.profile.auth_kind == "key" ? #15803d : #475467;
+                font-size: 10px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        Rectangle {
+            width: 42px;
+            height: 23px;
+            border-radius: 6px;
+            background: #edf5ff;
+            border-width: 1px;
+            border-color: #c6d7f5;
+
+            Text {
+                text: root.profile.port;
+                color: #0b55cc;
+                font-size: 10px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        IconButton {
+            label: "⋮";
+            clicked => { root.edit(root.profile.id); }
+        }
+
+        Rectangle {
+            width: 44px;
+            height: 36px;
+            border-radius: 8px;
+            background: #0f6fff;
+
+            Text {
+                text: "▶";
+                color: #ffffff;
+                font-size: 14px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                clicked => { root.connect(root.profile.id); }
+            }
+        }
+    }
+}
+
+component ShortcutKey inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    callback send(string);
+
+    width: 58px;
+    height: 38px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: #d8e0ea;
+    background: #ffffff;
+
+    Text {
+        text: root.label;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    TouchArea {
+        clicked => { root.send(root.value); }
+    }
+}
+
+component TerminalSurface inherits VerticalLayout {
+    in property <string> active_meta;
+    in property <string> connection_state;
+    in property <string> terminal_text;
+    in property <int> terminal_font_size;
+    in-out property <string> keyboard_buffer;
+    callback terminal_input(string);
+    callback terminal_shortcut(string);
+    callback set_terminal_font_size(int);
+
+    padding: 0px;
+    spacing: 0px;
+
+    Rectangle {
+        height: 28px;
+        background: #fbfdff;
+        border-width: 1px;
+        border-color: #d8e0ea;
+
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            alignment: center;
+
+            Text {
+                text: root.active_meta;
+                color: #475467;
+                font-size: 11px;
+                overflow: elide;
+            }
+            Text {
+                text: root.connection_state;
+                color: root.connection_state == "connected" ? #15803d : #0f6fff;
+                font-size: 11px;
+                font-weight: 800;
+                horizontal-alignment: right;
+            }
+        }
+    }
+
+    Rectangle {
+        background: #05070a;
+
+        ScrollView {
+            Text {
+                text: root.terminal_text;
+                color: #d8e2ef;
+                font-family: "monospace";
+                font-size: root.terminal_font_size * 1px;
+                wrap: no-wrap;
+            }
+        }
+
+        LineEdit {
+            x: 0px;
+            y: 0px;
+            width: 1px;
+            height: 1px;
+            opacity: 0.01;
+            text <=> root.keyboard_buffer;
+            edited(text) => {
+                root.terminal_input(text);
+                root.keyboard_buffer = "";
+            }
+        }
+    }
+
+    Rectangle {
+        height: 58px;
+        background: #ffffff;
+        border-width: 1px;
+        border-color: #d8e0ea;
+
+        HorizontalLayout {
+            padding-left: 10px;
+            padding-right: 10px;
+            spacing: 7px;
+            alignment: center;
+
+            ShortcutKey { label: "Esc"; value: "\u{1b}"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "Tab"; value: "\u{9}"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "Ctrl+C"; value: "\u{3}"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "Ctrl+D"; value: "\u{4}"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "/"; value: "/"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "-"; value: "-"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "|"; value: "|"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "↑"; value: "\u{1b}[A"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "↓"; value: "\u{1b}[B"; send(v) => { root.terminal_shortcut(v); } }
+            ShortcutKey { label: "→"; value: "\u{1b}[C"; send(v) => { root.terminal_shortcut(v); } }
+
+            Rectangle {
+                width: 128px;
+                height: 40px;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: #c6d7f5;
+                background: #edf5ff;
+
+                HorizontalLayout {
+                    spacing: 4px;
+                    padding-left: 4px;
+                    padding-right: 4px;
+                    alignment: center;
+                    ShortcutKey { label: "−"; value: "font--"; send(_) => { root.set_terminal_font_size(root.terminal_font_size - 1); } }
+                    Text {
+                        text: "Aa\n" + root.terminal_font_size;
+                        color: #0b55cc;
+                        font-size: 10px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                    ShortcutKey { label: "+"; value: "font++"; send(_) => { root.set_terminal_font_size(root.terminal_font_size + 1); } }
+                }
+            }
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "DirectSSH";
+    width: 390px;
+    height: 844px;
+    background: #eef3f8;
+
+    in property <[ProfileRow]> profiles;
+    in-out property <string> view: "home";
+    in-out property <string> status_text: "Ready";
+    in-out property <string> connection_state: "idle";
+    in-out property <string> active_name: "No active session";
+    in-out property <string> active_meta: "Connect from Saved Sessions";
+    in-out property <string> terminal_text: "DirectSSH terminal ready. Choose a saved session or add a profile.";
+    in-out property <int> terminal_font_size: 14;
+    in-out property <string> selected_profile_id: "";
+    in-out property <bool> editor_open: false;
+    in-out property <bool> use_key_auth: false;
+    in-out property <string> form_name: "";
+    in-out property <string> form_host: "";
+    in-out property <string> form_port: "22";
+    in-out property <string> form_user: "";
+    in-out property <string> form_secret: "";
+    in-out property <string> form_passphrase: "";
+    in-out property <string> search_text: "";
+    in-out property <string> keyboard_buffer: "";
+
+    callback refresh_profiles();
+    callback filter_profiles(string);
+    callback save_profile(string, string, string, string, bool, string, string);
+    callback delete_profile(string);
+    callback connect_profile(string);
+    callback connect_draft(string, string, string, string, bool, string, string);
+    callback edit_profile(string);
+    callback terminal_input(string);
+    callback terminal_shortcut(string);
+    callback disconnect_session();
+    callback set_terminal_font_size(int);
+    callback resize_terminal(int, int);
+
+    init => {
+        root.refresh_profiles();
+    }
+
+    if root.view == "home": Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #eef3f8;
+
+        Rectangle {
+            x: 14px;
+            y: 18px + root.safe-area-insets.top;
+            width: parent.width - 28px;
+            height: parent.height - 34px - root.safe-area-insets.top;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #d8e0ea;
+            background: #ffffff;
+
+            VerticalLayout {
+                padding: 14px;
+                spacing: 12px;
+
+                HorizontalLayout {
+                    height: 46px;
+                    spacing: 10px;
+                    alignment: center;
+
+                    Image {
+                        width: 36px;
+                        height: 36px;
+                        source: @image-url("../assets/directssh-icon.png");
+                    }
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text {
+                            text: "DirectSSH";
+                            color: #0f6fff;
+                            font-size: 20px;
+                            font-weight: 900;
+                        }
+                        Text {
+                            text: root.status_text;
+                            color: #667085;
+                            font-size: 11px;
+                            overflow: elide;
+                        }
+                    }
+
+                    IconButton {
+                        label: "+";
+                        clicked => {
+                            root.selected_profile_id = "";
+                            root.form_name = "";
+                            root.form_host = "";
+                            root.form_port = "22";
+                            root.form_user = "";
+                            root.form_secret = "";
+                            root.form_passphrase = "";
+                            root.use_key_auth = false;
+                            root.editor_open = true;
+                        }
+                    }
+                }
+
+                LineEdit {
+                    height: 42px;
+                    text <=> root.search_text;
+                    placeholder-text: "Search sessions";
+                    edited(text) => { root.filter_profiles(text); }
+                }
+
+                HorizontalLayout {
+                    height: 24px;
+                    Text {
+                        text: "Sessions";
+                        color: #0f6fff;
+                        font-size: 12px;
+                        font-weight: 800;
+                    }
+                    Text {
+                        text: root.profiles.length + " profiles";
+                        color: #667085;
+                        font-size: 11px;
+                        horizontal-alignment: right;
+                    }
+                }
+
+                ScrollView {
+                    VerticalLayout {
+                        spacing: 8px;
+                        for profile in root.profiles: SessionRow {
+                            profile: profile;
+                            connect(id) => { root.connect_profile(id); }
+                            edit(id) => { root.edit_profile(id); }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 46px;
+                    alignment: center;
+
+                    Text {
+                        text: root.profiles.length == 0 ? "No saved profiles" : "Local encrypted vault";
+                        color: #667085;
+                        font-size: 12px;
+                    }
+
+                    Button {
+                        text: "+ Add Profile";
+                        clicked => {
+                            root.selected_profile_id = "";
+                            root.form_name = "";
+                            root.form_host = "";
+                            root.form_port = "22";
+                            root.form_user = "";
+                            root.form_secret = "";
+                            root.form_passphrase = "";
+                            root.use_key_auth = false;
+                            root.editor_open = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if root.view == "ssh": Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #ffffff;
+
+        if parent.width <= parent.height: VerticalLayout {
+            padding-top: root.safe-area-insets.top;
+            spacing: 0px;
+
+            HorizontalLayout {
+                height: 56px;
+                padding-left: 10px;
+                padding-right: 10px;
+                spacing: 8px;
+                alignment: center;
+
+                TabButton { label: "HOME"; active: false; clicked => { root.view = "home"; } }
+                TabButton { label: root.active_name; active: true; clicked => {} }
+                TabButton { label: "+"; active: false; clicked => { root.view = "home"; root.editor_open = true; } }
+
+                IconButton {
+                    label: "×";
+                    clicked => { root.disconnect_session(); }
+                }
+            }
+
+            Rectangle {
+                height: 1px;
+                background: #d8e0ea;
+            }
+
+            TerminalSurface {
+                active_meta: root.active_meta;
+                connection_state: root.connection_state;
+                terminal_text: root.terminal_text;
+                terminal_font_size: root.terminal_font_size;
+                keyboard_buffer <=> root.keyboard_buffer;
+                terminal_input(text) => { root.terminal_input(text); }
+                terminal_shortcut(text) => { root.terminal_shortcut(text); }
+                set_terminal_font_size(size) => { root.set_terminal_font_size(size); }
+            }
+        }
+
+        if parent.width > parent.height: HorizontalLayout {
+            padding-top: root.safe-area-insets.top;
+            spacing: 0px;
+
+            Rectangle {
+                width: 62px;
+                background: #f8fbff;
+                border-width: 1px;
+                border-color: #d8e0ea;
+
+                VerticalLayout {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    RailTabButton { label: "HOME"; active: false; clicked => { root.view = "home"; } }
+                    RailTabButton { label: root.active_name; active: true; clicked => {} }
+                    RailTabButton { label: "ADD"; active: false; clicked => { root.view = "home"; root.editor_open = true; } }
+                    IconButton { label: "×"; clicked => { root.disconnect_session(); } }
+                }
+            }
+
+            TerminalSurface {
+                active_meta: root.active_meta;
+                connection_state: root.connection_state;
+                terminal_text: root.terminal_text;
+                terminal_font_size: root.terminal_font_size;
+                keyboard_buffer <=> root.keyboard_buffer;
+                terminal_input(text) => { root.terminal_input(text); }
+                terminal_shortcut(text) => { root.terminal_shortcut(text); }
+                set_terminal_font_size(size) => { root.set_terminal_font_size(size); }
+            }
+        }
+    }
+
+    if root.editor_open: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #00000066;
+
+        TouchArea {
+            clicked => { root.editor_open = false; }
+        }
+
+        Rectangle {
+            x: 14px;
+            y: max(54px + root.safe-area-insets.top, parent.height - 520px);
+            width: parent.width - 28px;
+            height: min(500px, parent.height - 70px - root.safe-area-insets.top);
+            border-radius: 18px;
+            border-width: 1px;
+            border-color: #d8e0ea;
+            background: #ffffff;
+
+            VerticalLayout {
+                padding: 18px;
+                spacing: 10px;
+
+                HorizontalLayout {
+                    height: 34px;
+                    Text {
+                        text: root.selected_profile_id == "" ? "Add SSH Profile" : "Edit SSH Profile";
+                        color: #101828;
+                        font-size: 18px;
+                        font-weight: 900;
+                    }
+                    IconButton { label: "×"; clicked => { root.editor_open = false; } }
+                }
+
+                LineEdit { text <=> root.form_name; placeholder-text: "Name"; }
+                LineEdit { text <=> root.form_host; placeholder-text: "Host"; }
+                LineEdit { text <=> root.form_port; placeholder-text: "Port"; }
+                LineEdit { text <=> root.form_user; placeholder-text: "Username"; }
+
+                HorizontalLayout {
+                    height: 42px;
+                    spacing: 8px;
+                    TabButton { label: "Password"; active: !root.use_key_auth; clicked => { root.use_key_auth = false; } }
+                    TabButton { label: "Private Key"; active: root.use_key_auth; clicked => { root.use_key_auth = true; } }
+                }
+
+                LineEdit {
+                    text <=> root.form_secret;
+                    placeholder-text: root.use_key_auth ? "Private key or blank to keep saved key" : "Password or blank to keep saved password";
+                }
+                LineEdit {
+                    text <=> root.form_passphrase;
+                    placeholder-text: "Passphrase";
+                    enabled: root.use_key_auth;
+                }
+
+                HorizontalLayout {
+                    height: 44px;
+                    spacing: 8px;
+
+                    Button {
+                        text: "Delete";
+                        enabled: root.selected_profile_id != "";
+                        clicked => { root.delete_profile(root.selected_profile_id); }
+                    }
+                    Button {
+                        text: "Connect";
+                        clicked => {
+                            root.connect_draft(root.form_name, root.form_host, root.form_port, root.form_user, root.use_key_auth, root.form_secret, root.form_passphrase);
+                        }
+                    }
+                    Button {
+                        text: "Save";
+                        clicked => {
+                            root.save_profile(root.form_name, root.form_host, root.form_port, root.form_user, root.use_key_auth, root.form_secret, root.form_passphrase);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
