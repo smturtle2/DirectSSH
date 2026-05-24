@@ -19,7 +19,7 @@
 
 - Direct SSH sockets through a native Rust backend. No cloud relay or browser-only pseudo terminal.
 - Password and private-key authentication support through `russh`.
-- xterm.js terminal with PTY resize, scrollback, shortcut keys, and mobile keyboard handling.
+- xterm.js terminal with PTY resize, scrollback, shortcut keys, font-size controls, and mobile keyboard handling.
 - Encrypted local profile vault using AES-GCM in the app data directory.
 - Light mobile-first layout with compact saved sessions, a dedicated terminal view, and touch-friendly controls.
 - Browser preview mode with simulated SSH events for UI development.
@@ -45,7 +45,7 @@ Download the latest APK from the GitHub Releases page:
 https://github.com/smturtle2/DirectSSH/releases/latest
 ```
 
-Use the signed `DirectSSH-v0.1.3.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
+Use the signed `DirectSSH-v0.1.4.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
 
 ## Development
 

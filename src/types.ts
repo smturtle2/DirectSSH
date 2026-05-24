@@ -7,6 +7,9 @@ export type AuthDraft =
       kind: "key";
       private_key: string;
       passphrase: string | null;
+    }
+  | {
+      kind: "saved";
     };
 
 export interface SaveProfileRequest {

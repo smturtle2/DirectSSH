@@ -15,11 +15,15 @@ import type {
 type MockHandler<T> = (payload: T) => void;
 type AppView = "home" | "ssh";
 type ConnectionState = TerminalStatus["status"] | "idle";
+type FormAuthKind = Exclude<AuthDraft["kind"], "saved">;
 
 const isTauriRuntime = "__TAURI_INTERNALS__" in window;
 const mockDataHandlers = new Set<MockHandler<TerminalOutput>>();
 const mockStatusHandlers = new Set<MockHandler<TerminalStatus>>();
 const mockProfilesKey = "directssh.mockProfiles";
+const terminalFontSizeKey = "directssh.terminalFontSize";
+const minTerminalFontSize = 11;
+const maxTerminalFontSize = 22;
 
 const shortcutKeys = [
   { label: "Esc", key: "\x1b" },
@@ -40,10 +44,11 @@ const state = {
   activeSessionId: "",
   activeProfileName: "No active session",
   activeProfileMeta: "Connect from Saved Sessions",
-  authKind: "password" as AuthDraft["kind"],
+  authKind: "password" as FormAuthKind,
   view: "home" as AppView,
   status: "Ready",
   connectionState: "idle" as ConnectionState,
+  terminalFontSize: readTerminalFontSize(),
 };
 
 let terminal: Terminal;
@@ -101,40 +106,33 @@ app.innerHTML = `
           ${icon("home")}
           <span class="rail-label">Sessions</span>
         </button>
-        <button type="button" id="rail-terminal" class="rail-button active" aria-label="Terminal">
-          ${icon("terminal")}
-          <span class="rail-label">Terminal</span>
+        <button type="button" id="rail-terminal" class="rail-button rail-terminal-tab active" aria-label="Terminal">
+          <span id="connection-dot" class="connection-dot" aria-hidden="true"></span>
+          <span class="rail-copy">
+            <strong id="active-profile-name">No active session</strong>
+            <span id="active-profile-meta">Connect from Saved Sessions</span>
+          </span>
         </button>
         <button type="button" id="rail-add" class="rail-button" aria-label="Add SSH profile">
           ${icon("plus")}
           <span class="rail-label">New</span>
         </button>
+        <button type="button" id="disconnect-session" class="rail-disconnect" aria-label="Disconnect" disabled>
+          ${icon("disconnect")}
+        </button>
       </nav>
 
       <div class="terminal-pane">
-        <header class="terminal-header">
-          <div class="connection-summary">
-            <span id="connection-dot" class="connection-dot" aria-hidden="true"></span>
-            <div>
-              <strong id="active-profile-name">No active session</strong>
-              <span id="active-profile-meta">Connect from Saved Sessions</span>
-            </div>
-          </div>
-          <div class="terminal-actions">
-            <span id="status-text">Ready</span>
-            <button type="button" id="terminal-home" class="icon-button" aria-label="Back to sessions">
-              ${icon("home")}
-            </button>
-            <button type="button" id="disconnect-session" class="danger-button" disabled>
-              ${icon("disconnect")}
-              <span>Disconnect</span>
-            </button>
-          </div>
-        </header>
+        <span id="status-text" class="sr-only">Ready</span>
 
         <div id="terminal-root" class="terminal-root"></div>
 
         <div class="shortcut-bar" aria-label="Terminal shortcut keys">
+          <div class="font-size-control" aria-label="Terminal font size">
+            <button type="button" id="font-decrease" aria-label="Decrease terminal font size">A-</button>
+            <span id="font-size-value">14</span>
+            <button type="button" id="font-increase" aria-label="Increase terminal font size">A+</button>
+          </div>
           ${shortcutKeys
             .map(
               (shortcut, index) =>
@@ -160,6 +158,7 @@ app.innerHTML = `
         </div>
 
         <p id="form-error" class="form-error" role="alert"></p>
+        <p id="credential-note" class="credential-note hidden">Saved credential available. Leave the secret field blank to keep it.</p>
 
         <div class="form-grid">
           <label>
@@ -222,6 +221,8 @@ const activeProfileName = app.querySelector<HTMLElement>("#active-profile-name")
 const activeProfileMeta = app.querySelector<HTMLElement>("#active-profile-meta")!;
 const disconnectButton = app.querySelector<HTMLButtonElement>("#disconnect-session")!;
 const deleteButton = app.querySelector<HTMLButtonElement>("#delete-selected")!;
+const credentialNote = app.querySelector<HTMLElement>("#credential-note")!;
+const fontSizeValue = app.querySelector<HTMLElement>("#font-size-value")!;
 const authButtons = [...app.querySelectorAll<HTMLButtonElement>(".auth-option")];
 const passwordField = app.querySelector<HTMLElement>("#password-field")!;
 const keyFields = app.querySelector<HTMLElement>("#key-fields")!;
@@ -244,6 +245,7 @@ const fields = {
 async function boot() {
   setupTerminal();
   setupEvents();
+  updateTerminalFontSizeControl();
   await attachBackendEvents();
   await refreshProfiles();
   writeBanner();
@@ -257,7 +259,7 @@ function setupTerminal() {
     cursorStyle: "block",
     allowProposedApi: true,
     fontFamily: "'Hack', 'Noto Sans Mono CJK KR', 'D2Coding', monospace",
-    fontSize: 14,
+    fontSize: state.terminalFontSize,
     lineHeight: 1.28,
     scrollback: 6000,
     theme: {
@@ -292,9 +294,14 @@ function setupEvents() {
   });
 
   app.querySelector<HTMLButtonElement>("#rail-home")!.addEventListener("click", () => switchView("home"));
-  app.querySelector<HTMLButtonElement>("#terminal-home")!.addEventListener("click", () => switchView("home"));
   app.querySelector<HTMLButtonElement>("#rail-terminal")!.addEventListener("click", () => switchView("ssh"));
   app.querySelector<HTMLButtonElement>("#rail-add")!.addEventListener("click", openNewProfileSheet);
+  app.querySelector<HTMLButtonElement>("#font-decrease")!.addEventListener("click", () => {
+    setTerminalFontSize(state.terminalFontSize - 1);
+  });
+  app.querySelector<HTMLButtonElement>("#font-increase")!.addEventListener("click", () => {
+    setTerminalFontSize(state.terminalFontSize + 1);
+  });
   app.querySelector<HTMLButtonElement>("#add-profile")!.addEventListener("click", openNewProfileSheet);
   app.querySelector<HTMLButtonElement>("#close-sheet")!.addEventListener("click", closeProfileSheet);
   app.querySelector<HTMLButtonElement>("#sheet-backdrop")!.addEventListener("click", closeProfileSheet);
@@ -327,11 +334,12 @@ function setupEvents() {
         sessionId: state.activeSessionId,
         data: shortcut.key,
       }).catch(showError);
+      terminal.focus();
     });
   });
 
   window.addEventListener("resize", queueFit);
-  window.visualViewport?.addEventListener("resize", updateKeyboardState);
+  window.visualViewport?.addEventListener("resize", queueFit);
   window.visualViewport?.addEventListener("scroll", updateKeyboardState);
 }
 
@@ -468,6 +476,10 @@ async function connectDraft() {
   setFormError("");
   const draft = buildProfileDraft();
   validateDraft(draft);
+  if (draft.auth.kind === "saved" && state.selectedProfileId) {
+    await connectProfile(state.selectedProfileId);
+    return;
+  }
   await startSession(
     () => invokeCommand<string>("connect_ephemeral", connectionArgs({ profile: draft })),
     draft.name.trim(),
@@ -542,6 +554,7 @@ function openNewProfileSheet() {
 
 function openProfileSheet() {
   setFormError("");
+  syncFormState();
   profileSheet.classList.remove("hidden");
   window.setTimeout(() => fields.name.focus(), 20);
 }
@@ -564,7 +577,7 @@ function clearForm() {
   renderProfiles();
 }
 
-function setAuthKind(kind: AuthDraft["kind"]) {
+function setAuthKind(kind: FormAuthKind) {
   state.authKind = kind;
   authButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.auth === kind);
@@ -585,17 +598,25 @@ function switchView(view: AppView) {
 
 function buildProfileDraft(): SaveProfileRequest {
   const port = Number.parseInt(fields.port.value, 10);
-  const auth: AuthDraft =
-    state.authKind === "key"
-      ? {
-          kind: "key",
-          private_key: fields.privateKey.value,
-          passphrase: fields.passphrase.value || null,
-        }
-      : {
-          kind: "password",
-          password: fields.password.value,
-        };
+  let auth: AuthDraft;
+
+  if (state.selectedProfileId && state.authKind === "password" && !fields.password.value) {
+    auth = { kind: "saved" };
+  } else if (state.selectedProfileId && state.authKind === "key" && !fields.privateKey.value.trim()) {
+    auth = { kind: "saved" };
+  } else {
+    auth =
+      state.authKind === "key"
+        ? {
+            kind: "key",
+            private_key: fields.privateKey.value,
+            passphrase: fields.passphrase.value || null,
+          }
+        : {
+            kind: "password",
+            password: fields.password.value,
+          };
+  }
 
   return {
     id: state.selectedProfileId || null,
@@ -620,6 +641,9 @@ function validateDraft(profile: SaveProfileRequest) {
   if (!Number.isInteger(profile.port) || profile.port < 1 || profile.port > 65535) {
     throw new Error("Port must be between 1 and 65535");
   }
+  if (profile.auth.kind === "saved" && !state.selectedProfileId) {
+    throw new Error("A saved credential is not available for this profile");
+  }
   if (profile.auth.kind === "password" && !profile.auth.password) {
     throw new Error("Password is required");
   }
@@ -639,6 +663,7 @@ function connectionArgs(args: { profile?: SaveProfileRequest; profileId?: string
 function queueFit() {
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
+    updateKeyboardState();
     const bounds = terminalRoot.getBoundingClientRect();
     if (bounds.width > 0 && bounds.height > 0) {
       fitAddon.fit();
@@ -650,14 +675,41 @@ function queueFit() {
         rows: terminal.rows,
       }).catch(showError);
     }
-    updateKeyboardState();
   }, 60);
 }
 
 function updateKeyboardState() {
   const viewport = window.visualViewport;
-  const keyboardOpen = viewport ? window.innerHeight - viewport.height > 120 : false;
+  const viewportHeight = Math.round(viewport?.height ?? window.innerHeight);
+  const viewportOffsetTop = Math.round(viewport?.offsetTop ?? 0);
+  const keyboardHeight = Math.max(0, Math.round(window.innerHeight - viewportHeight - viewportOffsetTop));
+  const keyboardOpen = keyboardHeight > 120;
+  shell.style.setProperty("--app-height", `${viewportHeight}px`);
+  shell.style.setProperty("--viewport-offset-top", `${viewportOffsetTop}px`);
+  shell.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
   shell.classList.toggle("keyboard-open", keyboardOpen);
+}
+
+function readTerminalFontSize() {
+  const saved = Number.parseInt(localStorage.getItem(terminalFontSizeKey) ?? "", 10);
+  return clampTerminalFontSize(Number.isFinite(saved) ? saved : 14);
+}
+
+function setTerminalFontSize(fontSize: number) {
+  state.terminalFontSize = clampTerminalFontSize(fontSize);
+  localStorage.setItem(terminalFontSizeKey, String(state.terminalFontSize));
+  terminal.options.fontSize = state.terminalFontSize;
+  updateTerminalFontSizeControl();
+  queueFit();
+  terminal.focus();
+}
+
+function updateTerminalFontSizeControl() {
+  fontSizeValue.textContent = `${state.terminalFontSize}px`;
+}
+
+function clampTerminalFontSize(fontSize: number) {
+  return Math.min(maxTerminalFontSize, Math.max(minTerminalFontSize, fontSize));
 }
 
 function writeBanner() {
@@ -689,6 +741,10 @@ function updateConnectionHeader() {
 
 function syncFormState() {
   deleteButton.disabled = !state.selectedProfileId;
+  const hasSavedCredential = Boolean(state.selectedProfileId);
+  credentialNote.classList.toggle("hidden", !hasSavedCredential);
+  fields.password.placeholder = hasSavedCredential ? "Leave blank to keep saved password" : "";
+  fields.privateKey.placeholder = hasSavedCredential ? "Leave blank to keep saved private key" : "Paste OpenSSH private key";
 }
 
 function setFormError(message: string) {
@@ -744,7 +800,15 @@ async function mockInvoke<T>(command: string, args?: Record<string, unknown>): P
   if (command === "save_profile") {
     const profile = args?.profile as SaveProfileRequest;
     validateDraft(profile);
-    const summary = toSummary(profile);
+    const existingProfile = profiles.find((item) => item.id === profile.id);
+    const summary =
+      profile.auth.kind === "saved" && existingProfile
+        ? {
+            ...toSummary(profile),
+            auth_kind: existingProfile.auth_kind,
+            auth_label: existingProfile.auth_label,
+          }
+        : toSummary(profile);
     const nextProfiles = [summary, ...profiles.filter((item) => item.id !== summary.id)];
     localStorage.setItem(mockProfilesKey, JSON.stringify(nextProfiles));
     return summary as T;
@@ -804,14 +868,15 @@ function readMockProfiles(): ProfileSummary[] {
 }
 
 function toSummary(profile: SaveProfileRequest): ProfileSummary {
+  const authKind = profile.auth.kind === "key" ? "key" : "password";
   return {
     id: profile.id || crypto.randomUUID(),
     name: profile.name.trim() || "Untitled",
     host: profile.host.trim() || "127.0.0.1",
     port: profile.port || 22,
     username: profile.username.trim() || "user",
-    auth_kind: profile.auth.kind,
-    auth_label: profile.auth.kind === "key" ? "KEY" : "PW",
+    auth_kind: authKind,
+    auth_label: authKind === "key" ? "KEY" : "PW",
     updated_at: Math.floor(Date.now() / 1000),
   };
 }

@@ -63,6 +63,7 @@ enum ProfileAuth {
         private_key: String,
         passphrase: Option<String>,
     },
+    Saved,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,17 +126,33 @@ async fn save_profile(
     app: AppHandle,
     profile: SaveProfileRequest,
 ) -> CommandResult<ProfileSummary> {
-    validate_profile(&profile)?;
+    validate_profile_fields(&profile)?;
 
     let mut vault = load_vault(&app)?;
-    let id = profile.id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let id = profile
+        .id
+        .clone()
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
+    let auth = match profile.auth {
+        ProfileAuth::Saved => vault
+            .profiles
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| item.auth.clone())
+            .ok_or_else(|| "Saved credential is not available for this profile".to_string())?,
+        auth => {
+            validate_auth(&auth)?;
+            auth
+        }
+    };
+
     let stored = StoredProfile {
         id: id.clone(),
         name: profile.name.trim().to_string(),
         host: profile.host.trim().to_string(),
         port: profile.port,
         username: profile.username.trim().to_string(),
-        auth: profile.auth,
+        auth,
         updated_at: now_epoch(),
     };
 
@@ -397,6 +414,7 @@ async fn authenticate(
                 .await
                 .map_err(|error| format!("Private key authentication failed: {error}"))?
         }
+        ProfileAuth::Saved => return Err("Saved credential could not be resolved".to_string()),
     };
 
     if auth_result.success() {
@@ -420,6 +438,11 @@ async fn get_live_session(
 }
 
 fn validate_profile(profile: &SaveProfileRequest) -> CommandResult<()> {
+    validate_profile_fields(profile)?;
+    validate_auth(&profile.auth)
+}
+
+fn validate_profile_fields(profile: &SaveProfileRequest) -> CommandResult<()> {
     if profile.name.trim().is_empty() {
         return Err("Profile name is required".to_string());
     }
@@ -432,12 +455,19 @@ fn validate_profile(profile: &SaveProfileRequest) -> CommandResult<()> {
     if profile.port == 0 {
         return Err("Port must be greater than zero".to_string());
     }
-    match &profile.auth {
+    Ok(())
+}
+
+fn validate_auth(auth: &ProfileAuth) -> CommandResult<()> {
+    match auth {
         ProfileAuth::Password { password } if password.is_empty() => {
             Err("Password is required".to_string())
         }
         ProfileAuth::Key { private_key, .. } if private_key.trim().is_empty() => {
             Err("Private key content is required".to_string())
+        }
+        ProfileAuth::Saved => {
+            Err("Saved credential cannot be used for a new connection".to_string())
         }
         _ => Ok(()),
     }
@@ -580,6 +610,7 @@ impl From<StoredProfile> for ProfileSummary {
                     .unwrap_or_else(|_| "KEY".to_string());
                 ("key".to_string(), label)
             }
+            ProfileAuth::Saved => ("saved".to_string(), "SAVED".to_string()),
         };
 
         Self {

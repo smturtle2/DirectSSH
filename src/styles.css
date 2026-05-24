@@ -72,12 +72,22 @@ svg {
   stroke-width: 2;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .client-shell {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: var(--app-height, 100%);
   overflow: hidden;
   background: var(--bg);
+  transform: translateY(var(--viewport-offset-top, 0));
 }
 
 .home-screen,
@@ -424,32 +434,36 @@ svg {
 
 .terminal-rail {
   display: flex;
-  width: 72px;
-  flex: 0 0 72px;
+  width: 86px;
+  flex: 0 0 86px;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 8px;
   border-right: 1px solid var(--line);
   background: #f8fbff;
   overflow: hidden;
-  padding: 18px 0;
+  padding: 16px 0;
 }
 
 .rail-button {
   display: inline-flex;
-  width: 112px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 118px;
+  height: 44px;
+  flex: 0 0 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin: 35px 0;
+  margin: 37px 0;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 850;
   transform: rotate(-90deg);
   transform-origin: center;
   white-space: nowrap;
+}
+
+.rail-terminal-tab {
+  width: 150px;
 }
 
 .rail-button svg {
@@ -461,13 +475,49 @@ svg {
   display: inline-block;
 }
 
+.rail-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  text-align: left;
+}
+
+.rail-copy strong {
+  overflow: hidden;
+  max-width: 92px;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-copy span {
+  display: none;
+}
+
 .rail-button.active {
   border-color: #b8d3ff;
   background: var(--blue-soft);
   color: var(--blue);
 }
 
+.rail-disconnect {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  margin-top: auto;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
 .terminal-pane {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -593,25 +643,66 @@ svg {
 }
 
 .shortcut-bar {
-  display: grid;
-  min-height: 66px;
-  flex: 0 0 66px;
+  display: flex;
+  min-height: 64px;
+  flex: 0 0 64px;
   align-items: center;
   gap: 8px;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  overflow-x: auto;
+  border-top: 1px solid var(--terminal-line);
   background: #ffffff;
-  padding: 12px 20px;
+  padding: 10px 20px;
+  scrollbar-width: none;
+}
+
+.shortcut-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .shortcut-bar button {
-  min-width: 0;
+  min-width: 72px;
   height: 40px;
+  flex: 0 0 auto;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #fbfdff;
   color: var(--muted-strong);
   font-size: 12px;
   font-weight: 800;
+}
+
+.font-size-control {
+  display: inline-flex;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #c6d7f5;
+  border-radius: 10px;
+  background: #edf5ff;
+  padding: 0 5px;
+}
+
+.font-size-control button {
+  min-width: 42px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--blue-dark);
+}
+
+.font-size-control span {
+  min-width: 34px;
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.keyboard-open .shortcut-bar {
+  border-top-color: #b8d3ff;
+  box-shadow: 0 -12px 26px rgba(16, 24, 40, 0.08);
 }
 
 .profile-sheet {
@@ -692,6 +783,17 @@ svg {
 
 .form-error.visible {
   display: block;
+}
+
+.credential-note {
+  margin: 0 0 14px;
+  border: 1px solid #c6d7f5;
+  border-radius: 10px;
+  background: #edf5ff;
+  color: var(--blue-dark);
+  font-size: 13px;
+  font-weight: 750;
+  padding: 10px 12px;
 }
 
 .form-grid {
@@ -870,18 +972,22 @@ textarea:focus {
   }
 
   .terminal-rail {
-    width: 64px;
-    flex-basis: 64px;
-    padding: 14px 0;
+    width: 76px;
+    flex-basis: 76px;
+    padding: 12px 0;
   }
 
   .rail-button {
-    width: 104px;
+    width: 108px;
     height: 40px;
     flex-basis: 40px;
-    margin: 32px 0;
+    margin: 34px 0;
     gap: 7px;
     font-size: 11px;
+  }
+
+  .rail-terminal-tab {
+    width: 142px;
   }
 
   .rail-button svg {
@@ -889,54 +995,29 @@ textarea:focus {
     height: 15px;
   }
 
-  .terminal-header {
-    min-height: 66px;
-    flex-basis: 66px;
-    gap: 10px;
-    padding: 0 10px 0 12px;
-  }
-
-  .connection-summary {
-    gap: 9px;
-  }
-
-  .connection-summary strong {
-    font-size: 14px;
-  }
-
-  .connection-summary span:not(.connection-dot),
-  #status-text {
-    font-size: 10px;
-  }
-
-  #status-text {
-    display: none;
-  }
-
-  .danger-button {
-    width: 40px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .danger-button span {
-    display: none;
-  }
-
   .terminal-root {
     padding: 12px 10px;
   }
 
   .shortcut-bar {
-    min-height: 112px;
-    flex-basis: 112px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 62px;
+    flex-basis: 62px;
     padding: 10px;
   }
 
   .shortcut-bar button {
     height: 38px;
+    min-width: 68px;
     font-size: 11px;
+  }
+
+  .font-size-control {
+    height: 38px;
+  }
+
+  .font-size-control button {
+    min-width: 38px;
+    height: 28px;
   }
 
   .profile-form {
@@ -961,12 +1042,12 @@ textarea:focus {
 
   .terminal-rail {
     width: 100%;
-    height: 58px;
-    flex: 0 0 58px;
+    height: 68px;
+    flex: 0 0 68px;
     flex-direction: row;
     align-items: center;
     justify-content: stretch;
-    gap: 8px;
+    gap: 6px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
     overflow: visible;
@@ -976,14 +1057,51 @@ textarea:focus {
   .rail-button {
     width: auto;
     min-width: 0;
-    height: 42px;
-    flex: 1 1 0;
+    height: 50px;
+    flex: 0 0 auto;
     margin: 0;
     transform: none;
   }
 
+  .rail-button:not(.rail-terminal-tab) {
+    min-width: 72px;
+    padding: 0 10px;
+  }
+
+  .rail-terminal-tab {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    padding: 0 11px;
+  }
+
+  .rail-copy strong {
+    max-width: 100%;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .rail-copy span {
+    display: block;
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--muted);
+    font-family: "Hack", "Noto Sans Mono CJK KR", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .rail-button.active {
     box-shadow: inset 0 -3px 0 var(--blue);
+  }
+
+  .rail-disconnect {
+    width: 42px;
+    height: 50px;
+    flex-basis: 42px;
+    margin-top: 0;
   }
 }
 
@@ -1005,5 +1123,10 @@ textarea:focus {
 
   .session-row {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rail-button:not(.rail-terminal-tab) {
+    min-width: 64px;
+    padding: 0 8px;
   }
 }
