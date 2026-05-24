@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirectSSH UI Blueprint & Implementation Plan</title>
+    <link rel="icon" href="data:,">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        @font-face {
+            font-family: 'Hack';
+            src: url('https://cdn.jsdelivr.net/gh/source-foundry/Hack@master/build/ttf/Hack-Regular.ttf') format('truetype');
+        }
+
+        :root {
+            --ink: #07111f;
+            --panel: #ffffff;
+            --paper: #f4f8fd;
+            --line: #d8e2ef;
+            --line-strong: #b7c9e2;
+            --muted: #62738c;
+            --text: #132033;
+            --blue: #145fd7;
+            --blue-soft: #eaf3ff;
+            --cyan: #18b7ff;
+            --green: #1fbf75;
+            --terminal: #05080d;
+            --terminal-2: #0a111b;
+            --terminal-line: #172233;
+            --terminal-text: #c8d1de;
+            --terminal-muted: #6f7f93;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(24, 183, 255, 0.13), transparent 320px),
+                linear-gradient(180deg, #f7fbff 0%, #eef4fb 100%);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.45;
+        }
+
+        .topbar {
+            align-items: center;
+            background: linear-gradient(90deg, #020817 0%, #07111f 55%, #0b1526 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            display: flex;
+            gap: 20px;
+            min-height: 72px;
+            padding: 0 34px;
+        }
+
+        .logo-mark {
+            align-items: center;
+            border: 2px solid var(--cyan);
+            border-radius: 8px;
+            color: #ffffff;
+            display: flex;
+            flex: 0 0 44px;
+            font-family: 'Hack', monospace;
+            font-size: 24px;
+            font-weight: 800;
+            height: 44px;
+            justify-content: center;
+            box-shadow: 0 0 0 4px rgba(24, 183, 255, 0.08);
+        }
+
+        .brand {
+            align-items: baseline;
+            display: flex;
+            gap: 18px;
+            min-width: 0;
+        }
+
+        .brand h1 {
+            color: #ffffff;
+            font-size: 31px;
+            font-weight: 900;
+            letter-spacing: 0;
+            white-space: nowrap;
+        }
+
+        .brand h1 span {
+            color: var(--cyan);
+        }
+
+        .brand p {
+            color: #c8d3e3;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .top-meta {
+            align-items: center;
+            display: flex;
+            gap: 16px;
+            margin-left: auto;
+        }
+
+        .version-pill {
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 999px;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 4px 10px;
+        }
+
+        .date {
+            color: #d8e2ef;
+            font-size: 13px;
+        }
+
+        .page {
+            margin: 0 auto;
+            max-width: 1220px;
+            padding: 28px 30px 34px;
+        }
+
+        .hero-grid {
+            display: grid;
+            gap: 28px;
+            grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+            margin-bottom: 22px;
+        }
+
+        .title-block h2 {
+            color: #0c1b2d;
+            font-size: 40px;
+            font-weight: 900;
+            letter-spacing: 0;
+            line-height: 1.1;
+            margin-bottom: 10px;
+        }
+
+        .title-block h2 span {
+            color: var(--blue);
+        }
+
+        .title-block p {
+            color: #34465f;
+            font-size: 15px;
+            max-width: 640px;
+        }
+
+        .lock-card {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid #9cc5ff;
+            border-radius: 14px;
+            box-shadow: 0 10px 24px rgba(20, 95, 215, 0.08);
+            padding: 16px 18px;
+        }
+
+        .lock-card h3 {
+            color: #0f4ea8;
+            font-size: 14px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        .check-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .check-list div {
+            color: #10243c;
+            font-size: 13px;
+            font-weight: 700;
+            padding-left: 22px;
+            position: relative;
+        }
+
+        .check-list div::before {
+            color: var(--blue);
+            content: "✓";
+            font-weight: 900;
+            left: 0;
+            position: absolute;
+            top: 0;
+        }
+
+        .section-label {
+            align-items: center;
+            color: #0c1b2d;
+            display: flex;
+            font-size: 15px;
+            font-weight: 900;
+            gap: 10px;
+            margin: 26px 0 14px;
+        }
+
+        .section-label::before {
+            background: var(--blue);
+            border-radius: 999px;
+            content: "";
+            height: 8px;
+            width: 8px;
+        }
+
+        .screen-stage {
+            display: grid;
+            gap: 30px;
+            grid-template-columns: 390px minmax(0, 1fr);
+            margin-bottom: 26px;
+        }
+
+        .screen-card {
+            min-width: 0;
+        }
+
+        .screen-title {
+            align-items: center;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-left: 44px;
+        }
+
+        .screen-title strong {
+            background: linear-gradient(135deg, #174da4, #07265c);
+            border-radius: 7px;
+            color: #ffffff;
+            display: inline-flex;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 1;
+            padding: 10px 16px;
+        }
+
+        .screen-title span {
+            color: #465a73;
+            display: block;
+            font-size: 12.5px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .annotated {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: 96px minmax(0, 1fr);
+        }
+
+        .callouts {
+            display: grid;
+            gap: 27px;
+            padding-top: 54px;
+        }
+
+        .callout {
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 900;
+            position: relative;
+        }
+
+        .callout span {
+            color: #34465f;
+            display: block;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .callout::after {
+            background: var(--blue);
+            content: "";
+            height: 1px;
+            left: 78px;
+            opacity: 0.55;
+            position: absolute;
+            top: 8px;
+            width: 32px;
+        }
+
+        .phone-frame {
+            background: #111827;
+            border: 7px solid #080c13;
+            border-radius: 31px;
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+                0 24px 34px rgba(15, 23, 42, 0.18);
+            height: 650px;
+            margin: 0 auto;
+            overflow: hidden;
+            padding: 7px;
+            position: relative;
+            width: 300px;
+        }
+
+        .phone-screen {
+            background: #fbfdff;
+            border-radius: 22px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .phone-status {
+            align-items: center;
+            color: #111827;
+            display: flex;
+            font-size: 10px;
+            font-weight: 800;
+            height: 25px;
+            justify-content: space-between;
+            padding: 0 18px;
+        }
+
+        .camera-dot {
+            background: #05080d;
+            border-radius: 50%;
+            height: 13px;
+            left: 50%;
+            position: absolute;
+            top: 19px;
+            transform: translateX(-50%);
+            width: 13px;
+            z-index: 4;
+        }
+
+        .top-tabs {
+            background: #ffffff;
+            border-bottom: 1px solid #d9e1eb;
+            display: grid;
+            grid-template-columns: 1fr 1fr 34px;
+            height: 24px;
+        }
+
+        .top-tabs div {
+            align-items: center;
+            color: #485a70;
+            display: flex;
+            font-size: 10px;
+            font-weight: 800;
+            justify-content: center;
+        }
+
+        .top-tabs .active {
+            border-bottom: 2px solid var(--blue);
+            color: var(--blue);
+        }
+
+        .home-toolbar {
+            align-items: center;
+            background: #ffffff;
+            border-bottom: 1px solid #e4ebf3;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: 1fr 28px;
+            padding: 9px 12px;
+        }
+
+        .search-pill {
+            align-items: center;
+            background: #f0f3f7;
+            border-radius: 8px;
+            color: #7a8797;
+            display: flex;
+            font-size: 11px;
+            font-weight: 700;
+            height: 28px;
+            padding: 0 10px;
+        }
+
+        .filter-btn {
+            align-items: center;
+            border: 1px solid #d8e2ef;
+            border-radius: 7px;
+            color: #1f334c;
+            display: flex;
+            font-size: 13px;
+            font-weight: 900;
+            height: 28px;
+            justify-content: center;
+        }
+
+        .session-list {
+            background: #fbfdff;
+            flex: 1;
+            padding: 8px 12px;
+        }
+
+        .session-row {
+            align-items: center;
+            border-bottom: 1px solid #e2e9f2;
+            display: grid;
+            grid-template-columns: 22px minmax(0, 1fr) 26px;
+            min-height: 54px;
+        }
+
+        .row-icon {
+            color: #7b8796;
+            font-size: 17px;
+        }
+
+        .row-name {
+            color: #1a2738;
+            font-size: 12px;
+            font-weight: 900;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .row-host {
+            color: #5f6d7e;
+            font-family: 'Hack', monospace;
+            font-size: 9px;
+            margin-top: 1px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badges {
+            display: flex;
+            gap: 5px;
+            margin-top: 4px;
+        }
+
+        .badge {
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: 900;
+            line-height: 1;
+            padding: 4px 6px;
+        }
+
+        .port { background: #dcecff; color: #145fd7; }
+        .key { background: #dcf6df; color: #19744a; }
+        .pass { background: #f4f2f0; color: #4b5563; }
+
+        .connect-triangle {
+            color: var(--blue);
+            font-size: 20px;
+            font-weight: 900;
+            text-align: right;
+        }
+
+        .phone-bottom {
+            align-items: center;
+            border-top: 1px solid #dce5ef;
+            display: grid;
+            grid-template-columns: 1fr 1fr 28px;
+            height: 40px;
+            padding: 0 12px;
+        }
+
+        .phone-bottom button {
+            background: transparent;
+            border: none;
+            color: #0f1d2e;
+            font-size: 11px;
+            font-weight: 900;
+            text-align: left;
+        }
+
+        .phone-bottom span {
+            color: #7b8796;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .gear {
+            text-align: right;
+        }
+
+        .tablet-card .screen-title {
+            padding-left: 132px;
+        }
+
+        .tablet-shell {
+            background: #090d14;
+            border: 10px solid #111827;
+            border-radius: 24px;
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+                0 24px 38px rgba(15, 23, 42, 0.22);
+            height: 620px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tablet-status {
+            align-items: center;
+            background: #090d14;
+            border-bottom: 1px solid var(--terminal-line);
+            color: #d9e4f2;
+            display: grid;
+            font-size: 12px;
+            font-weight: 800;
+            grid-template-columns: 44px 1fr auto;
+            height: 40px;
+            padding: 0 14px 0 0;
+        }
+
+        .rail-measure {
+            color: #ffffff;
+            font-family: 'Hack', monospace;
+            text-align: center;
+        }
+
+        .secure {
+            color: #34d078;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .terminal-layout {
+            display: flex;
+            height: calc(100% - 40px);
+        }
+
+        .side-rail {
+            align-items: stretch;
+            background: #0f141c;
+            border-right: 1px solid #1b2736;
+            display: flex;
+            flex: 0 0 20px;
+            flex-direction: column;
+            padding-top: 14px;
+            width: 20px;
+        }
+
+        .rail-tab {
+            align-items: center;
+            border-bottom: 1px solid #223044;
+            display: flex;
+            height: 82px;
+            justify-content: center;
+            position: relative;
+        }
+
+        .rail-tab span {
+            color: #d8e2ef;
+            font-size: 9px;
+            font-weight: 900;
+            position: absolute;
+            transform: rotate(-90deg);
+            white-space: nowrap;
+        }
+
+        .rail-tab.active span {
+            color: #3af582;
+        }
+
+        .terminal-area {
+            background:
+                radial-gradient(circle at top right, rgba(24, 183, 255, 0.08), transparent 340px),
+                var(--terminal);
+            color: var(--terminal-text);
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            font-family: 'Hack', 'Noto Sans Mono CJK KR', monospace;
+            min-width: 0;
+        }
+
+        .terminal-output {
+            flex: 1;
+            font-size: 13px;
+            line-height: 1.55;
+            overflow: hidden;
+            padding: 22px 24px;
+            white-space: pre-wrap;
+        }
+
+        .green {
+            color: #54d889;
+        }
+
+        .blue {
+            color: #58c7ff;
+        }
+
+        .dim {
+            color: #7d8a9c;
+        }
+
+        .shortcut-bar {
+            background: #0d141f;
+            border-top: 1px solid #182536;
+            display: grid;
+            gap: 5px;
+            grid-template-columns: repeat(10, 1fr);
+            height: 39px;
+            padding: 5px;
+        }
+
+        .shortcut-bar div {
+            align-items: center;
+            background: #111a27;
+            border: 1px solid #1e2c3d;
+            border-radius: 4px;
+            color: #d8e2ef;
+            display: flex;
+            font-size: 11px;
+            font-weight: 800;
+            justify-content: center;
+        }
+
+        .tablet-notes {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(3, 1fr);
+            margin-top: 12px;
+            padding: 0 42px;
+        }
+
+        .tablet-note {
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .tablet-note span {
+            color: #465a73;
+            display: block;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: 1fr 1fr 1fr;
+            margin-bottom: 14px;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+
+        .info-card h3 {
+            border-bottom: 1px solid #c8d8ea;
+            color: #0e4aa2;
+            font-size: 15px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            padding-bottom: 9px;
+        }
+
+        .kv-row {
+            border-bottom: 1px solid #e6edf5;
+            display: grid;
+            font-size: 12px;
+            gap: 10px;
+            grid-template-columns: 120px 1fr;
+            padding: 7px 0;
+        }
+
+        .kv-row:last-child {
+            border-bottom: none;
+        }
+
+        .kv-row strong {
+            color: #26384f;
+            font-weight: 900;
+        }
+
+        .kv-row span,
+        .info-card li {
+            color: #34465f;
+            font-weight: 650;
+        }
+
+        .info-card ul {
+            display: grid;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .info-card li {
+            font-size: 12px;
+            padding-left: 17px;
+            position: relative;
+        }
+
+        .info-card li::before {
+            background: var(--blue);
+            border-radius: 50%;
+            content: "";
+            height: 5px;
+            left: 0;
+            position: absolute;
+            top: 7px;
+            width: 5px;
+        }
+
+        .stack-strip {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            margin-top: 14px;
+            padding: 16px 18px;
+        }
+
+        .stack-item {
+            color: #0f2748;
+            font-size: 12px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .stack-item span {
+            color: var(--blue);
+            display: block;
+            font-family: 'Hack', monospace;
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        .footer {
+            align-items: center;
+            background: #061120;
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 28px;
+            padding: 20px 34px;
+        }
+
+        .footer strong {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .footer strong span {
+            color: var(--cyan);
+        }
+
+        .footer p {
+            color: #9fb4ce;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 1080px) {
+            .topbar,
+            .brand,
+            .top-meta {
+                align-items: flex-start;
+            }
+
+            .topbar {
+                flex-wrap: wrap;
+                padding: 18px 22px;
+            }
+
+            .top-meta {
+                margin-left: 64px;
+            }
+
+            .hero-grid,
+            .screen-stage,
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .screen-title,
+            .tablet-card .screen-title {
+                padding-left: 0;
+            }
+
+            .annotated {
+                grid-template-columns: 1fr;
+            }
+
+            .callouts {
+                grid-template-columns: repeat(2, 1fr);
+                padding-top: 0;
+            }
+
+            .callout::after {
+                display: none;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .page {
+                padding: 22px 14px;
+            }
+
+            .brand {
+                display: block;
+            }
+
+            .brand h1 {
+                font-size: 26px;
+            }
+
+            .brand p {
+                margin-top: 4px;
+                white-space: normal;
+            }
+
+            .top-meta {
+                margin-left: 0;
+            }
+
+            .title-block h2 {
+                font-size: 30px;
+            }
+
+            .callouts,
+            .tablet-notes,
+            .stack-strip {
+                grid-template-columns: 1fr;
+            }
+
+            .phone-frame {
+                width: min(300px, 100%);
+            }
+
+            .tablet-shell {
+                border-width: 6px;
+                height: 520px;
+            }
+
+            .terminal-output {
+                font-size: 10px;
+                padding: 14px;
+            }
+
+            .shortcut-bar {
+                grid-template-columns: repeat(5, 1fr);
+                height: 74px;
+            }
+
+            .kv-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="logo-mark">&gt;_</div>
+        <div class="brand">
+            <h1><span>Direct</span>SSH</h1>
+            <p>Android SSH Client | UI Blueprint & Implementation Plan</p>
+        </div>
+        <div class="top-meta">
+            <div class="version-pill">v1.1</div>
+            <div class="date">2026-05-24</div>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="hero-grid">
+            <div class="title-block">
+                <h2><span>DirectSSH</span> 화면 설계서</h2>
+                <p>
+                    DirectSSH는 사용자 기기 내부에서 SSH 소켓 연결만 수행하는 독립형 Android SSH 클라이언트입니다.
+                    앱은 HOME 세션 관리자와 SSH 터미널, 두 개의 핵심 화면으로 구성됩니다.
+                </p>
+            </div>
+
+            <aside class="lock-card">
+                <h3>해석 고정 (Interpretation Lock)</h3>
+                <div class="check-list">
+                    <div>아래 두 목업은 각각 다른 화면을 설명하기 위한 대표 예시입니다.</div>
+                    <div>왼쪽은 HOME 화면, 오른쪽은 SSH 화면입니다.</div>
+                    <div>HOME과 SSH는 별도 화면이며, 둘 다 폰/태블릿에서 동작해야 합니다.</div>
+                </div>
+            </aside>
+        </section>
+
+        <div class="section-label">핵심 화면 비교</div>
+
+        <section class="screen-stage">
+            <article class="screen-card">
+                <div class="screen-title">
+                    <div>
+                        <strong>A. HOME Session Manager</strong>
+                        <span>저장된 SSH 프로필을 28px 미만 row strip으로 표시</span>
+                    </div>
+                </div>
+
+                <div class="annotated">
+                    <div class="callouts">
+                        <div class="callout">상단 탭바 24px<span>title header 없음</span></div>
+                        <div class="callout">검색/필터<span>빠른 세션 탐색</span></div>
+                        <div class="callout">row strip<span>카드 금지, 고밀도 목록</span></div>
+                        <div class="callout">포트/인증 배지<span>작고 읽히게 표시</span></div>
+                        <div class="callout">연결 버튼<span>작고 명확하게</span></div>
+                        <div class="callout">하단 액션<span>새 프로필 / 설정</span></div>
+                    </div>
+
+                    <div class="phone-frame">
+                        <div class="camera-dot"></div>
+                        <div class="phone-screen">
+                            <div class="phone-status">
+                                <span>10:30</span>
+                                <span>LTE 99%</span>
+                            </div>
+                            <div class="top-tabs">
+                                <div class="active">HOME</div>
+                                <div>SSH</div>
+                                <div>⋮</div>
+                            </div>
+                            <div class="home-toolbar">
+                                <div class="search-pill">검색 (이름, 호스트, 태그)</div>
+                                <div class="filter-btn">F</div>
+                            </div>
+
+                            <div class="session-list">
+                                <div class="session-row">
+                                    <div class="row-icon">☆</div>
+                                    <div>
+                                        <div class="row-name">AWS - Production</div>
+                                        <div class="row-host">ec2-3-142-12-10.ap-northeast-2.compute...</div>
+                                        <div class="badges"><span class="badge port">2222</span><span class="badge key">KEY</span></div>
+                                    </div>
+                                    <div class="connect-triangle">▶</div>
+                                </div>
+                                <div class="session-row">
+                                    <div class="row-icon">⌂</div>
+                                    <div>
+                                        <div class="row-name">Home Lab</div>
+                                        <div class="row-host">192.168.0.23</div>
+                                        <div class="badges"><span class="badge port">22</span><span class="badge pass">PASS</span></div>
+                                    </div>
+                                    <div class="connect-triangle">▶</div>
+                                </div>
+                                <div class="session-row">
+                                    <div class="row-icon">◇</div>
+                                    <div>
+                                        <div class="row-name">Docker Host</div>
+                                        <div class="row-host">10.0.0.15</div>
+                                        <div class="badges"><span class="badge port">2222</span><span class="badge key">KEY</span></div>
+                                    </div>
+                                    <div class="connect-triangle">▶</div>
+                                </div>
+                                <div class="session-row">
+                                    <div class="row-icon">▣</div>
+                                    <div>
+                                        <div class="row-name">Git Server</div>
+                                        <div class="row-host">git.example.com</div>
+                                        <div class="badges"><span class="badge port">22</span><span class="badge key">KEY</span></div>
+                                    </div>
+                                    <div class="connect-triangle">▶</div>
+                                </div>
+                                <div class="session-row">
+                                    <div class="row-icon">☆</div>
+                                    <div>
+                                        <div class="row-name">Staging Server</div>
+                                        <div class="row-host">staging.example.com</div>
+                                        <div class="badges"><span class="badge port">2222</span><span class="badge pass">PASS</span></div>
+                                    </div>
+                                    <div class="connect-triangle">▶</div>
+                                </div>
+                            </div>
+
+                            <div class="phone-bottom">
+                                <button>+ 새 프로필</button>
+                                <span>5개 프로필</span>
+                                <div class="gear">⚙</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="screen-card tablet-card">
+                <div class="screen-title">
+                    <div>
+                        <strong>B. SSH Terminal Screen</strong>
+                        <span>터미널 가용 면적을 극대화한 워크스페이스</span>
+                    </div>
+                </div>
+
+                <div class="tablet-shell">
+                    <div class="tablet-status">
+                        <div class="rail-measure">20px</div>
+                        <div>AWS - Production / ec2-3-142-12-10 / Port: 2222</div>
+                        <div class="secure">Secure Stream</div>
+                    </div>
+
+                    <div class="terminal-layout">
+                        <nav class="side-rail" aria-label="SSH terminal tabs">
+                            <div class="rail-tab"><span>HOME</span></div>
+                            <div class="rail-tab active"><span>AWS</span></div>
+                            <div class="rail-tab"><span>LOC</span></div>
+                            <div class="rail-tab"><span>+</span></div>
+                        </nav>
+
+                        <div class="terminal-area">
+                            <div class="terminal-output"><span class="green">Linux ip-10-0-0-15</span> 6.1.0-18-cloud-amd64 #1 SMP Debian x86_64
+Last login: Sat May 24 10:21:01 2026 from 203.0.113.45
+
+<span class="green">ubuntu@ip-10-0-0-15:~$</span> ls -alh
+total 44K
+drwx------  5 ubuntu ubuntu 4.0K May 24 10:21 .
+drwxr-xr-x  3 root   root   4.0K Apr 12 09:11 ..
+-rw-------  1 ubuntu ubuntu  220 Apr 12 09:11 .bash_logout
+-rw-r--r--  1 ubuntu ubuntu 3.7K Apr 12 09:11 .bashrc
+drwx------  2 ubuntu ubuntu 4.0K May 24 10:21 .cache
+drwxr-xr-x  4 ubuntu ubuntu 4.0K Apr 20 14:33 .config
+-rw-r--r--  1 ubuntu ubuntu  807 Apr 12 09:11 .profile
+
+<span class="green">ubuntu@ip-10-0-0-15:~$</span> <span class="blue">_</span></div>
+
+                            <div class="shortcut-bar">
+                                <div>ESC</div>
+                                <div>TAB</div>
+                                <div>CTRL</div>
+                                <div>ALT</div>
+                                <div>-</div>
+                                <div>/</div>
+                                <div>|</div>
+                                <div>↑</div>
+                                <div>↓</div>
+                                <div>→</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tablet-notes">
+                    <div class="tablet-note">20px 사이드 레일<span>단어 전체 90도 회전</span></div>
+                    <div class="tablet-note">터미널 영역 최우선<span>Hack 14~16px 권장</span></div>
+                    <div class="tablet-note">전용 단축 바<span>키보드 열릴 때만 표시</span></div>
+                </div>
+            </article>
+        </section>
+
+        <section class="info-grid">
+            <article class="info-card">
+                <h3>UI 핵심 규격</h3>
+                <div class="kv-row"><strong>상단 탭바 높이</strong><span>24px 고정</span></div>
+                <div class="kv-row"><strong>세션 row strip</strong><span>28px 미만 권장</span></div>
+                <div class="kv-row"><strong>SSH 사이드 탭</strong><span>20px 고정 폭</span></div>
+                <div class="kv-row"><strong>아이콘 크기</strong><span>16px row 내부</span></div>
+                <div class="kv-row"><strong>포트 배지</strong><span>최대 4자리 예: 2222</span></div>
+                <div class="kv-row"><strong>터미널 폰트</strong><span>Hack 14~16px</span></div>
+            </article>
+
+            <article class="info-card">
+                <h3>화면 흐름</h3>
+                <ul>
+                    <li>앱 시작 시 HOME 세션 리스트를 먼저 보여준다.</li>
+                    <li>연결 버튼을 누르면 active session을 만들고 SSH 화면으로 전환한다.</li>
+                    <li>SSH 화면에서 HOME 탭을 누르면 연결 유지/종료 정책을 확인한다.</li>
+                    <li>프로필 추가/수정은 별도 화면이 아니라 bottom sheet 또는 overlay로 처리한다.</li>
+                </ul>
+            </article>
+
+            <article class="info-card">
+                <h3>백엔드 책임</h3>
+                <ul>
+                    <li>Rust/Tauri command가 SSH 연결, 인증, 재연결, 타임아웃을 관리한다.</li>
+                    <li>PTY shell과 xterm.js 사이의 입출력 스트림을 이벤트로 연결한다.</li>
+                    <li>키 파일 import, 암호화 저장, 권한 관리를 앱 샌드박스에서 처리한다.</li>
+                    <li>프론트엔드는 세션 상태와 터미널 스트림만 구독한다.</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="info-grid">
+            <article class="info-card">
+                <h3>반응형 동작</h3>
+                <ul>
+                    <li>세로 스마트폰: HOME은 1열 리스트, SSH는 상단 24px 탭 + 터미널 중심.</li>
+                    <li>가로 스마트폰: SSH는 전체 터미널 + 20px 레일을 우선한다.</li>
+                    <li>태블릿/와이드: SSH 화면은 20px 레일과 터미널을 고정하고 여백을 만들지 않는다.</li>
+                </ul>
+            </article>
+
+            <article class="info-card">
+                <h3>보안 원칙</h3>
+                <ul>
+                    <li>직접 SSH 연결만 수행하고 프록시/서버 경유를 사용하지 않는다.</li>
+                    <li>모든 자격 증명은 로컬 vault에 암호화 저장한다.</li>
+                    <li>민감 정보는 메모리 체류를 최소화하고 사용 후 즉시 제거한다.</li>
+                </ul>
+            </article>
+
+            <article class="info-card">
+                <h3>구현 금지사항</h3>
+                <ul>
+                    <li>HOME과 SSH를 한 화면에 큰 split layout으로 동시에 붙이지 않는다.</li>
+                    <li>첫 화면에 큰 입력 폼을 상시 노출하지 않는다.</li>
+                    <li>SSH 화면에서 넓은 세션 패널이 터미널 폭을 침범하지 않는다.</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="stack-strip">
+            <div class="stack-item"><span>Tv2</span>Tauri v2</div>
+            <div class="stack-item"><span>Rs</span>Rust</div>
+            <div class="stack-item"><span>TS</span>TypeScript</div>
+            <div class="stack-item"><span>XT</span>xterm.js</div>
+            <div class="stack-item"><span>HK</span>Hack Font</div>
+            <div class="stack-item"><span>AG</span>AES-GCM</div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <strong><span>Direct</span>SSH</strong>
+        <p>Fast. Secure. Direct.</p>
+        <p>Local-first SSH from your Android device.</p>
+    </footer>
+</body>
+</html>
