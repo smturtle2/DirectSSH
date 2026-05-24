@@ -55,6 +55,7 @@ component TabButton inherits Rectangle {
         font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
+        overflow: elide;
     }
 
     TouchArea {
@@ -213,10 +214,12 @@ component SessionRow inherits Rectangle {
 component ShortcutKey inherits Rectangle {
     in property <string> label;
     in property <string> value;
+    in property <length> key_width: 58px;
+    in property <length> key_height: 38px;
     callback send(string);
 
-    width: 58px;
-    height: 38px;
+    width: root.key_width;
+    height: root.key_height;
     border-radius: 8px;
     border-width: 1px;
     border-color: #d8e0ea;
@@ -236,7 +239,76 @@ component ShortcutKey inherits Rectangle {
     }
 }
 
+component ShortcutBar inherits Rectangle {
+    in property <length> surface_width: 390px;
+    in property <int> terminal_font_size;
+    callback terminal_shortcut(string);
+    callback set_terminal_font_size(int);
+
+    property <length> bar-pad: max(6px, min(root.surface_width * 0.03, 10px));
+    property <length> bar-gap: max(5px, min(root.surface_width * 0.02, 8px));
+    property <length> shortcut-width: max(38px, min(root.surface_width * 0.15, 58px));
+    property <length> shortcut-height: max(34px, min(root.surface_width * 0.105, 38px));
+    property <length> font-panel-width: max(104px, min(root.surface_width * 0.34, 128px));
+
+    height: max(48px, min(root.surface_width * 0.16, 58px));
+    background: #ffffff;
+    border-width: 1px;
+    border-color: #d8e0ea;
+
+    HorizontalLayout {
+        padding-left: root.bar-pad;
+        padding-right: root.bar-pad;
+
+        ScrollView {
+            HorizontalLayout {
+                spacing: root.bar-gap;
+                alignment: center;
+
+                ShortcutKey { label: "Esc"; value: "\u{1b}"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "Tab"; value: "\u{9}"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "Ctrl+C"; value: "\u{3}"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "Ctrl+D"; value: "\u{4}"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "/"; value: "/"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "-"; value: "-"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "|"; value: "|"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "↑"; value: "\u{1b}[A"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "↓"; value: "\u{1b}[B"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+                ShortcutKey { label: "→"; value: "\u{1b}[C"; key_width: root.shortcut-width; key_height: root.shortcut-height; send(v) => { root.terminal_shortcut(v); } }
+
+                Rectangle {
+                    width: root.font-panel-width;
+                    height: max(36px, min(root.surface_width * 0.11, 40px));
+                    border-radius: max(6px, min(root.surface_width * 0.025, 8px));
+                    border-width: 1px;
+                    border-color: #c6d7f5;
+                    background: #edf5ff;
+
+                    HorizontalLayout {
+                        spacing: max(3px, min(root.surface_width * 0.012, 5px));
+                        padding-left: max(3px, min(root.surface_width * 0.012, 5px));
+                        padding-right: max(3px, min(root.surface_width * 0.012, 5px));
+                        alignment: center;
+                        ShortcutKey { label: "−"; value: "font--"; key_width: max(30px, min(root.surface_width * 0.09, 34px)); key_height: max(30px, min(root.surface_width * 0.09, 34px)); send(_) => { root.set_terminal_font_size(root.terminal_font_size - 1); } }
+                        Text {
+                            text: "Aa\n" + root.terminal_font_size;
+                            color: #0b55cc;
+                            font-size: 10px;
+                            font-weight: 800;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        ShortcutKey { label: "+"; value: "font++"; key_width: max(30px, min(root.surface_width * 0.09, 34px)); key_height: max(30px, min(root.surface_width * 0.09, 34px)); send(_) => { root.set_terminal_font_size(root.terminal_font_size + 1); } }
+                    }
+                }
+            }
+        }
+    }
+}
+
 component TerminalSurface inherits VerticalLayout {
+    in property <length> surface_width: 390px;
+    in property <length> keyboard_height: 0px;
     in property <string> active_meta;
     in property <string> connection_state;
     in property <string> terminal_text;
@@ -246,11 +318,15 @@ component TerminalSurface inherits VerticalLayout {
     callback terminal_shortcut(string);
     callback set_terminal_font_size(int);
 
+    property <bool> keyboard-active: false;
+    property <bool> top-shortcuts: root.keyboard-active && root.keyboard_height == 0px;
+    property <length> meta-height: max(24px, min(root.surface_width * 0.08, 30px));
+
     padding: 0px;
     spacing: 0px;
 
     Rectangle {
-        height: 28px;
+        height: root.meta-height;
         background: #fbfdff;
         border-width: 1px;
         border-color: #d8e0ea;
@@ -276,6 +352,13 @@ component TerminalSurface inherits VerticalLayout {
         }
     }
 
+    if root.top-shortcuts: ShortcutBar {
+        surface_width: root.surface_width;
+        terminal_font_size: root.terminal_font_size;
+        terminal_shortcut(v) => { root.terminal_shortcut(v); }
+        set_terminal_font_size(size) => { root.set_terminal_font_size(size); }
+    }
+
     Rectangle {
         background: #05070a;
 
@@ -289,7 +372,11 @@ component TerminalSurface inherits VerticalLayout {
             }
         }
 
-        LineEdit {
+        TouchArea {
+            clicked => { keyboard-edit.focus(); }
+        }
+
+        keyboard-edit := LineEdit {
             x: 0px;
             y: 0px;
             width: 1px;
@@ -300,66 +387,45 @@ component TerminalSurface inherits VerticalLayout {
                 root.terminal_input(text);
                 root.keyboard_buffer = "";
             }
+            changed has-focus => {
+                root.keyboard-active = self.has-focus;
+            }
         }
     }
 
-    Rectangle {
-        height: 58px;
-        background: #ffffff;
-        border-width: 1px;
-        border-color: #d8e0ea;
-
-        HorizontalLayout {
-            padding-left: 10px;
-            padding-right: 10px;
-            spacing: 7px;
-            alignment: center;
-
-            ShortcutKey { label: "Esc"; value: "\u{1b}"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "Tab"; value: "\u{9}"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "Ctrl+C"; value: "\u{3}"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "Ctrl+D"; value: "\u{4}"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "/"; value: "/"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "-"; value: "-"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "|"; value: "|"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "↑"; value: "\u{1b}[A"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "↓"; value: "\u{1b}[B"; send(v) => { root.terminal_shortcut(v); } }
-            ShortcutKey { label: "→"; value: "\u{1b}[C"; send(v) => { root.terminal_shortcut(v); } }
-
-            Rectangle {
-                width: 128px;
-                height: 40px;
-                border-radius: 8px;
-                border-width: 1px;
-                border-color: #c6d7f5;
-                background: #edf5ff;
-
-                HorizontalLayout {
-                    spacing: 4px;
-                    padding-left: 4px;
-                    padding-right: 4px;
-                    alignment: center;
-                    ShortcutKey { label: "−"; value: "font--"; send(_) => { root.set_terminal_font_size(root.terminal_font_size - 1); } }
-                    Text {
-                        text: "Aa\n" + root.terminal_font_size;
-                        color: #0b55cc;
-                        font-size: 10px;
-                        font-weight: 800;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-                    ShortcutKey { label: "+"; value: "font++"; send(_) => { root.set_terminal_font_size(root.terminal_font_size + 1); } }
-                }
-            }
-        }
+    if !root.top-shortcuts: ShortcutBar {
+        surface_width: root.surface_width;
+        terminal_font_size: root.terminal_font_size;
+        terminal_shortcut(v) => { root.terminal_shortcut(v); }
+        set_terminal_font_size(size) => { root.set_terminal_font_size(size); }
     }
 }
 
 export component AppWindow inherits Window {
     title: "DirectSSH";
-    width: 390px;
-    height: 844px;
+    preferred-width: 390px;
+    preferred-height: 844px;
     background: #eef3f8;
+
+    property <length> viewport-width: root.width - root.safe-area-insets.left - root.safe-area-insets.right;
+    property <length> viewport-height: root.height - root.safe-area-insets.top - root.safe-area-insets.bottom;
+    property <length> edge: max(8px, min(root.viewport-width * 0.04, 18px));
+    property <length> outer-top: max(10px, min(root.viewport-height * 0.025, 22px));
+    property <length> outer-bottom: max(8px, min(root.viewport-height * 0.02, 18px));
+    property <length> keyboard-height: root.virtual-keyboard-size.height;
+    property <length> usable-height: max(320px, root.viewport-height - root.keyboard-height);
+    property <length> panel-pad: max(10px, min(root.viewport-width * 0.04, 16px));
+    property <length> panel-gap: max(8px, min(root.viewport-width * 0.035, 14px));
+    property <length> panel-radius: max(10px, min(root.viewport-width * 0.045, 18px));
+    property <length> header-height: max(42px, min(root.viewport-height * 0.065, 52px));
+    property <length> brand-icon-size: max(32px, min(root.viewport-width * 0.105, 40px));
+    property <length> brand-font-size: max(18px, min(root.viewport-width * 0.055, 22px));
+    property <length> tab-bar-height: max(48px, min(root.viewport-height * 0.07, 58px));
+    property <length> rail-width: max(54px, min(root.viewport-width * 0.12, 66px));
+    property <length> modal-height: min(500px, root.usable-height - root.edge * 2);
+    property <length> modal-header-height: max(32px, min(root.viewport-height * 0.045, 38px));
+    property <length> field-height: max(38px, min(root.viewport-height * 0.055, 44px));
+    property <length> action-height: max(40px, min(root.viewport-height * 0.058, 46px));
 
     in property <[ProfileRow]> profiles;
     in-out property <string> view: "home";
@@ -404,27 +470,27 @@ export component AppWindow inherits Window {
         background: #eef3f8;
 
         Rectangle {
-            x: 14px;
-            y: 18px + root.safe-area-insets.top;
-            width: parent.width - 28px;
-            height: parent.height - 34px - root.safe-area-insets.top;
-            border-radius: 16px;
+            x: root.safe-area-insets.left + root.edge;
+            y: root.safe-area-insets.top + root.outer-top;
+            width: root.viewport-width - root.edge * 2;
+            height: root.viewport-height - root.outer-top - root.outer-bottom;
+            border-radius: root.panel-radius;
             border-width: 1px;
             border-color: #d8e0ea;
             background: #ffffff;
 
             VerticalLayout {
-                padding: 14px;
-                spacing: 12px;
+                padding: root.panel-pad;
+                spacing: root.panel-gap;
 
                 HorizontalLayout {
-                    height: 46px;
-                    spacing: 10px;
+                    height: root.header-height;
+                    spacing: root.panel-gap;
                     alignment: center;
 
                     Image {
-                        width: 36px;
-                        height: 36px;
+                        width: root.brand-icon-size;
+                        height: root.brand-icon-size;
                         source: @image-url("../assets/directssh-icon.png");
                     }
 
@@ -433,8 +499,9 @@ export component AppWindow inherits Window {
                         Text {
                             text: "DirectSSH";
                             color: #0f6fff;
-                            font-size: 20px;
+                            font-size: root.brand-font-size;
                             font-weight: 900;
+                            overflow: elide;
                         }
                         Text {
                             text: root.status_text;
@@ -461,14 +528,14 @@ export component AppWindow inherits Window {
                 }
 
                 LineEdit {
-                    height: 42px;
+                    height: max(38px, min(root.viewport-height * 0.055, 44px));
                     text <=> root.search_text;
                     placeholder-text: "Search sessions";
                     edited(text) => { root.filter_profiles(text); }
                 }
 
                 HorizontalLayout {
-                    height: 24px;
+                    height: max(20px, min(root.viewport-height * 0.032, 26px));
                     Text {
                         text: "Sessions";
                         color: #0f6fff;
@@ -480,6 +547,7 @@ export component AppWindow inherits Window {
                         color: #667085;
                         font-size: 11px;
                         horizontal-alignment: right;
+                        overflow: elide;
                     }
                 }
 
@@ -495,7 +563,7 @@ export component AppWindow inherits Window {
                 }
 
                 HorizontalLayout {
-                    height: 46px;
+                    height: max(40px, min(root.viewport-height * 0.06, 48px));
                     alignment: center;
 
                     Text {
@@ -530,13 +598,14 @@ export component AppWindow inherits Window {
 
         if parent.width <= parent.height: VerticalLayout {
             padding-top: root.safe-area-insets.top;
+            padding-bottom: root.safe-area-insets.bottom + root.keyboard-height;
             spacing: 0px;
 
             HorizontalLayout {
-                height: 56px;
-                padding-left: 10px;
-                padding-right: 10px;
-                spacing: 8px;
+                height: root.tab-bar-height;
+                padding-left: root.safe-area-insets.left + root.edge;
+                padding-right: root.safe-area-insets.right + root.edge;
+                spacing: max(6px, min(root.viewport-width * 0.025, 10px));
                 alignment: center;
 
                 TabButton { label: "HOME"; active: false; clicked => { root.view = "home"; } }
@@ -555,6 +624,8 @@ export component AppWindow inherits Window {
             }
 
             TerminalSurface {
+                surface_width: root.viewport-width;
+                keyboard_height: root.keyboard-height;
                 active_meta: root.active_meta;
                 connection_state: root.connection_state;
                 terminal_text: root.terminal_text;
@@ -568,18 +639,21 @@ export component AppWindow inherits Window {
 
         if parent.width > parent.height: HorizontalLayout {
             padding-top: root.safe-area-insets.top;
+            padding-bottom: root.safe-area-insets.bottom + root.keyboard-height;
+            padding-left: root.safe-area-insets.left;
+            padding-right: root.safe-area-insets.right;
             spacing: 0px;
 
             Rectangle {
-                width: 62px;
+                width: root.rail-width;
                 background: #f8fbff;
                 border-width: 1px;
                 border-color: #d8e0ea;
 
                 VerticalLayout {
-                    padding-top: 8px;
-                    padding-bottom: 8px;
-                    spacing: 8px;
+                    padding-top: root.edge;
+                    padding-bottom: root.edge;
+                    spacing: max(6px, min(root.viewport-height * 0.025, 10px));
                     alignment: center;
 
                     RailTabButton { label: "HOME"; active: false; clicked => { root.view = "home"; } }
@@ -590,6 +664,8 @@ export component AppWindow inherits Window {
             }
 
             TerminalSurface {
+                surface_width: root.viewport-width - root.rail-width;
+                keyboard_height: root.keyboard-height;
                 active_meta: root.active_meta;
                 connection_state: root.connection_state;
                 terminal_text: root.terminal_text;
@@ -612,71 +688,80 @@ export component AppWindow inherits Window {
         }
 
         Rectangle {
-            x: 14px;
-            y: max(54px + root.safe-area-insets.top, parent.height - 520px);
-            width: parent.width - 28px;
-            height: min(500px, parent.height - 70px - root.safe-area-insets.top);
-            border-radius: 18px;
+            x: root.safe-area-insets.left + root.edge;
+            y: root.safe-area-insets.top + max(root.edge, (root.usable-height - root.modal-height) / 2);
+            width: root.viewport-width - root.edge * 2;
+            height: root.modal-height;
+            border-radius: root.panel-radius;
             border-width: 1px;
             border-color: #d8e0ea;
             background: #ffffff;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 10px;
+                padding: root.panel-pad;
+                spacing: root.panel-gap;
 
                 HorizontalLayout {
-                    height: 34px;
+                    height: root.modal-header-height;
                     Text {
                         text: root.selected_profile_id == "" ? "Add SSH Profile" : "Edit SSH Profile";
                         color: #101828;
-                        font-size: 18px;
+                        font-size: max(16px, min(root.viewport-width * 0.048, 18px));
                         font-weight: 900;
+                        overflow: elide;
                     }
                     IconButton { label: "×"; clicked => { root.editor_open = false; } }
                 }
 
-                LineEdit { text <=> root.form_name; placeholder-text: "Name"; }
-                LineEdit { text <=> root.form_host; placeholder-text: "Host"; }
-                LineEdit { text <=> root.form_port; placeholder-text: "Port"; }
-                LineEdit { text <=> root.form_user; placeholder-text: "Username"; }
+                ScrollView {
+                    VerticalLayout {
+                        spacing: root.panel-gap;
 
-                HorizontalLayout {
-                    height: 42px;
-                    spacing: 8px;
-                    TabButton { label: "Password"; active: !root.use_key_auth; clicked => { root.use_key_auth = false; } }
-                    TabButton { label: "Private Key"; active: root.use_key_auth; clicked => { root.use_key_auth = true; } }
-                }
+                        LineEdit { height: root.field-height; text <=> root.form_name; placeholder-text: "Name"; }
+                        LineEdit { height: root.field-height; text <=> root.form_host; placeholder-text: "Host"; }
+                        LineEdit { height: root.field-height; text <=> root.form_port; placeholder-text: "Port"; }
+                        LineEdit { height: root.field-height; text <=> root.form_user; placeholder-text: "Username"; }
 
-                LineEdit {
-                    text <=> root.form_secret;
-                    placeholder-text: root.use_key_auth ? "Private key or blank to keep saved key" : "Password or blank to keep saved password";
-                }
-                LineEdit {
-                    text <=> root.form_passphrase;
-                    placeholder-text: "Passphrase";
-                    enabled: root.use_key_auth;
-                }
-
-                HorizontalLayout {
-                    height: 44px;
-                    spacing: 8px;
-
-                    Button {
-                        text: "Delete";
-                        enabled: root.selected_profile_id != "";
-                        clicked => { root.delete_profile(root.selected_profile_id); }
-                    }
-                    Button {
-                        text: "Connect";
-                        clicked => {
-                            root.connect_draft(root.form_name, root.form_host, root.form_port, root.form_user, root.use_key_auth, root.form_secret, root.form_passphrase);
+                        HorizontalLayout {
+                            height: root.field-height;
+                            spacing: max(6px, min(root.viewport-width * 0.025, 10px));
+                            TabButton { label: "Password"; active: !root.use_key_auth; clicked => { root.use_key_auth = false; } }
+                            TabButton { label: "Private Key"; active: root.use_key_auth; clicked => { root.use_key_auth = true; } }
                         }
-                    }
-                    Button {
-                        text: "Save";
-                        clicked => {
-                            root.save_profile(root.form_name, root.form_host, root.form_port, root.form_user, root.use_key_auth, root.form_secret, root.form_passphrase);
+
+                        LineEdit {
+                            height: root.field-height;
+                            text <=> root.form_secret;
+                            placeholder-text: root.use_key_auth ? "Private key or blank to keep saved key" : "Password or blank to keep saved password";
+                        }
+                        LineEdit {
+                            height: root.field-height;
+                            text <=> root.form_passphrase;
+                            placeholder-text: "Passphrase";
+                            enabled: root.use_key_auth;
+                        }
+
+                        HorizontalLayout {
+                            height: root.action-height;
+                            spacing: max(6px, min(root.viewport-width * 0.025, 10px));
+
+                            Button {
+                                text: "Delete";
+                                enabled: root.selected_profile_id != "";
+                                clicked => { root.delete_profile(root.selected_profile_id); }
+                            }
+                            Button {
+                                text: "Connect";
+                                clicked => {
+                                    root.connect_draft(root.form_name, root.form_host, root.form_port, root.form_user, root.use_key_auth, root.form_secret, root.form_passphrase);
+                                }
+                            }
+                            Button {
+                                text: "Save";
+                                clicked => {
+                                    root.save_profile(root.form_name, root.form_host, root.form_port, root.form_user, root.use_key_auth, root.form_secret, root.form_passphrase);
+                                }
+                            }
                         }
                     }
                 }
