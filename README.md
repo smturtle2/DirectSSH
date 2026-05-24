@@ -45,7 +45,7 @@ Download the latest APK from the GitHub Releases page:
 https://github.com/smturtle2/DirectSSH/releases/latest
 ```
 
-Use the signed `DirectSSH-v0.1.2.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
+Use the signed `DirectSSH-v0.1.3.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
 
 ## Development
 

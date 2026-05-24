@@ -99,12 +99,15 @@ app.innerHTML = `
       <nav class="terminal-rail" aria-label="Terminal navigation">
         <button type="button" id="rail-home" class="rail-button" aria-label="Back to sessions">
           ${icon("home")}
+          <span class="rail-label">Sessions</span>
         </button>
         <button type="button" id="rail-terminal" class="rail-button active" aria-label="Terminal">
           ${icon("terminal")}
+          <span class="rail-label">Terminal</span>
         </button>
         <button type="button" id="rail-add" class="rail-button" aria-label="Add SSH profile">
           ${icon("plus")}
+          <span class="rail-label">New</span>
         </button>
       </nav>
 

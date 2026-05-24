@@ -962,7 +962,7 @@ dependencies = [
 
 [[package]]
 name = "directssh"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "aes-gcm 0.10.3",
  "base64 0.22.1",
