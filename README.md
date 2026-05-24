@@ -21,12 +21,16 @@
 - Password and private-key authentication support through `russh`.
 - xterm.js terminal with PTY resize, scrollback, shortcut keys, and mobile keyboard handling.
 - Encrypted local profile vault using AES-GCM in the app data directory.
-- Mobile-first layout with compact saved sessions, phone tabs, and tablet rail navigation.
+- Light mobile-first layout with compact saved sessions, a dedicated terminal view, and touch-friendly controls.
 - Browser preview mode with simulated SSH events for UI development.
 
-## Screens
+## Screenshots
 
-The app is designed around a compact session manager and a dark terminal workspace:
+| Session manager | SSH terminal |
+| --- | --- |
+| <img src="docs/assets/directssh-home-light.png" alt="DirectSSH light session manager" width="320"> | <img src="docs/assets/directssh-terminal-light.png" alt="DirectSSH light terminal" width="640"> |
+
+The app is designed around a compact session manager and a light terminal workspace:
 
 - Save reusable host profiles with password or key authentication.
 - Connect from a saved profile or launch an ephemeral connection from the current form.
@@ -41,7 +45,7 @@ Download the latest APK from the GitHub Releases page:
 https://github.com/smturtle2/DirectSSH/releases/latest
 ```
 
-Use the signed `DirectSSH-v0.1.1.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
+Use the signed `DirectSSH-v0.1.2.apk` asset for normal installation. If Android blocks the download source, enable installation from that browser or file manager in system settings.
 
 ## Development
 

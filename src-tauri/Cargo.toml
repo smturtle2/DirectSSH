@@ -1,6 +1,6 @@
 [package]
 name = "directssh"
-version = "0.1.1"
+version = "0.1.2"
 description = "DirectSSH standalone Android SSH client"
 authors = ["DirectSSH"]
 license = "MIT"
